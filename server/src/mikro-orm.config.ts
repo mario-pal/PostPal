@@ -1,5 +1,6 @@
 import { __prod__ } from "./constants";
 import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 import { MikroORM } from "@mikro-orm/core";
 import path from 'path'; //this is a function built into node
 
@@ -18,7 +19,7 @@ export default {
         path: path.join(__dirname, "./migrations"),
         pattern: /^[\w-]+\d+\.[tj]s$/ //the j was added to also recognize javascript files
     },
-    entities: [Post],
+    entities: [Post, User],
     dbName: 'lireddit',
     user: 'mario',
     password: 'pg',

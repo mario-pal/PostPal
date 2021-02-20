@@ -8,6 +8,16 @@ import {ApolloServer} from 'apollo-server-express'
 import {buildSchema} from 'type-graphql'
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
+import { UserResolver } from "./resolvers/user";
+
+import redis from 'redis';
+import session from 'express-session';
+
+//let RedisStore = require('connect-redis')(session) can become the following two lines using import statement...
+import connectRedis from 'connect-redis'
+import { MyContext } from "./types";
+//const RedisStore = connectRedis(session) this line is used later in the code in the redis section
+
 
 const main = async () => {
     //first few steps for the datbase are:
@@ -25,12 +35,44 @@ const main = async () => {
     /*app.get('/', (_, res) => { //the underscore '_' represents the req but if it is not used, it's best prctice to use '_'
         res.send("hello");
     })*/
+
+    //======================================redis===========================================
+    //Order matters so redis should be initiaized here
+    //FOR EXAMPLE: The session middleware will run before the apollo middleware. 
+    //This needs to happen because we want to use the session middleware inside of apollo
+    const RedisStore = connectRedis(session)
+
+    const redisClient = redis.createClient()
+
+    app.use(
+        session({
+            name: 'qid',
+            store: new RedisStore({ 
+                client: redisClient,
+                disableTouch: true//'touch' refreshes the session timer, but we will disable it to lower the number of requests
+            }),
+            cookie: {//here we are defining the settings for the express session cookie
+                //1000 * 60 * 60 * 24 * 365 * 10 is 10 years!
+                maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //where 1000 is 1 second
+                httpOnly: true, //thsi means no front end javascript code can access the cookie
+                sameSite: 'lax', //something to do with csrf...the ben awad tutorial disnt explain this, instead suggested to google it
+                secure: __prod__ //secure makes it so that cookie only works in https (in this case if __prod__ is true since in dev we dont use https)
+            },
+            saveUninitialized: false, //by default, a session is always saved even if there is no data for the session. However, by setting this to false we are saying we dont want to save sessions with no data
+            secret: 'keyboard cat',//put this in an environment variable later
+            resave: false,//set to false sothat it doesnt continously ping redis
+        })
+    );
+    //======================================================================================
+
     const apolloServer = new ApolloServer({ //create a graphql endpoint on express
         schema: await buildSchema({
-            resolvers: [HelloResolver, PostResolver],
+            resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false
         }),
-        context: () => ({ em: orm.em }) //here you define what special object is accessible by all your resolvers
+        //req is being passed to the context so that the resolvers have access to the session...the res may be needed later
+        //also notice that we're destructuring te req, res??? maybe, im not sure
+        context: ({req, res}): MyContext => ({ em: orm.em, req, res }) //here you define what special object is accessible by all your resolvers
     });
 
     apolloServer.applyMiddleware({ app });
