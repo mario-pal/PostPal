@@ -18,6 +18,7 @@ import connectRedis from 'connect-redis'
 import { MyContext } from "./types";
 //const RedisStore = connectRedis(session) this line is used later in the code in the redis section
 
+import cors from 'cors'
 
 const main = async () => {
     //first few steps for the datbase are:
@@ -43,7 +44,12 @@ const main = async () => {
     const RedisStore = connectRedis(session)
 
     const redisClient = redis.createClient()
-
+    //this app.use command is necessary for cors to apply to all routes. This is revlavent when using the graphql client
+    //You could also specify the specific route.
+    app.use(cors({
+        origin: 'http://localhost:3000',
+        credentials: true
+    }))
     app.use(
         session({
             name: 'qid',
@@ -75,7 +81,7 @@ const main = async () => {
         context: ({req, res}): MyContext => ({ em: orm.em, req, res }) //here you define what special object is accessible by all your resolvers
     });
 
-    apolloServer.applyMiddleware({ app });
+    apolloServer.applyMiddleware({ app,  cors: false});
 
     app.listen(4000, () => {
         console.log('server started on localhost:4000')
