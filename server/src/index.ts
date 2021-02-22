@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
-import { __prod__ } from "./constants";
+import { COOKIE_NAME, __prod__ } from "./constants";
 //import { Post } from "./entities/Post";
 import microConfig from "./mikro-orm.config";
 import express from 'express'
@@ -19,6 +19,8 @@ import { MyContext } from "./types";
 //const RedisStore = connectRedis(session) this line is used later in the code in the redis section
 
 import cors from 'cors'
+import { sendEmail } from "./utils/sendEmail";
+import { User } from "./entities/User";
 
 const main = async () => {
     //first few steps for the datbase are:
@@ -52,7 +54,7 @@ const main = async () => {
     }))
     app.use(
         session({
-            name: 'qid',
+            name: COOKIE_NAME,
             store: new RedisStore({ 
                 client: redisClient,
                 disableTouch: true//'touch' refreshes the session timer, but we will disable it to lower the number of requests

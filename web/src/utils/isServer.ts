@@ -1,0 +1,1 @@
+export const isServer = () => typeof window === "undefined"; //if true, we are on the server
