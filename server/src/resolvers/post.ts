@@ -1,47 +1,54 @@
 import { Post } from "../entities/Post";
+import { Resolver, Query, Ctx, Arg, Int, Mutation, Field, InputType, UseMiddleware } from "type-graphql";
 import { MyContext } from "src/types";
-import { Resolver, Query, Ctx, Arg, Int, Mutation } from "type-graphql";
+import { isAuth } from "../middleware/isAuth";
+
+@InputType()
+class PostInput{
+    @Field()
+    title: string
+    @Field()
+    text: string
+}
 
 @Resolver()
 export class PostResolver {
     @Query(() => [Post])//Post is the graphql type
-    posts(
-        @Ctx() {em}: MyContext
-    ) : Promise<Post []> { //Promise<Post []> is the typescript type. Btw this is here to validate the return type.
-        return em.find(Post, {});
+    async posts() : Promise<Post []> { //Promise<Post []> is the typescript type. Btw this is here to validate the return type.
+        return Post.find();
     }
 
     @Query(() => Post, {nullable: true})//this is saying we return a Post or Null graphql types
     post(
-        @Arg('id', () => Int) id: number,//here instead of 'id' you can call this anything but youd have to use the selected name in the graphql query
-        @Ctx() { em }: MyContext
-    ) : Promise<Post | null>{ //this is a type check done by Typescript
-        return em.findOne(Post, { id });
+        @Arg('id') id: number,//here instead of 'id' you can call this anything but youd have to use the selected name in the graphql query
+    ) : Promise<Post | undefined>{ //this is a type check done by Typescript
+        return Post.findOne(id);
     }
     //mutation is for inserting, updating and deleting or other commands that change things on the server
     @Mutation(() => Post)//this is saying we return a Post or Null graphql types
+    @UseMiddleware(isAuth)//this will run before the resolver
     async createPost(//@Arg('title', () => String) can be ommitted since graphql can sometimes infer the type from typescript
-        @Arg('title') title: string,//here instead of 'id' you can call this anything but youd have to use the selected name in the graphql query
-        @Ctx() { em }: MyContext
-    ) : Promise<Post>{ //this is a type check done by Typescript
-        const post = em.create(Post, {title})
-        await em.persistAndFlush(post)
-        return post
+        @Arg("input") input: PostInput,//here instead of 'id' you can call this anything but youd have to use the selected name in the graphql query
+        @Ctx() {req}: MyContext    
+        ) : Promise<Post>{ //this is a type check done by Typescript
+        
+        return Post.create({
+            ...input,
+            creatorId: req.session.userId
+        }).save();
     }
 
     @Mutation(() => Post, {nullable: true})//nullable is added in case the post being updated doesnt exist
     async updatePost(
         @Arg('id') id: number,
         @Arg('title', () => String, {nullable: true}) title: string,//nullable implies the argument is optional, but when it is optional you must specify the type with ()=>typegoeshere
-        @Ctx() { em }: MyContext
     ) : Promise<Post | null>{ //this is a type check done by Typescript
-        const post = await em.findOne(Post, {id});
+        const post = await Post.findOne(id);
         if(!post){
             return null
         }
         if(typeof title !== 'undefined'){
-            post.title = title;
-            await em.persistAndFlush(post);
+            await Post.update({id}, {title});
         }
         return post;
     }
@@ -49,10 +56,9 @@ export class PostResolver {
     @Mutation(() => Boolean)
     async deletePost(
         @Arg("id") id: number,
-        @Ctx() { em }: MyContext
     ) : Promise<boolean>{
-        await em.nativeDelete(Post, {id});
-        return true
+        await Post.delete(id);
+        return true;
     }
 
 }

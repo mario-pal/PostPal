@@ -1,19 +1,17 @@
 import React from "react";
 import { Form, Formik } from "formik";
 import { valueScaleCorrection } from "framer-motion/types/render/dom/layout/scale-correction";
-import {
-  Box,
-  Button,
-} from "@chakra-ui/react";
+import { Box, Button, Flex, Link } from "@chakra-ui/react";
 import { Wrapper } from "../components/Wrapper";
 import { InputField } from "../components/InputField";
 import { useMutation } from "urql";
 import { useLoginMutation } from "../generated/graphql";
 import { toErrorMap } from "../utils/toErrorMap";
 
-import {useRouter} from "next/router";
+import { useRouter } from "next/router";
 import { createUrqlClient } from "../utils/createUrqlClient";
 import { withUrqlClient } from "next-urql";
+import NextLink from 'next/link';
 
 const Login: React.FC<{}> = ({}) => {
   const router = useRouter();
@@ -26,9 +24,9 @@ const Login: React.FC<{}> = ({}) => {
           const response = await login(values);
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors));
-          } else if(response.data?.login.user){
-              //it worked
-              router.push("/");
+          } else if (response.data?.login.user) {
+            //it worked
+            router.push("/");
           }
         }}
       >
@@ -58,6 +56,11 @@ const Login: React.FC<{}> = ({}) => {
                 type="password"
               />
             </Box>
+            <Flex mt={2}>
+              <NextLink href="/forgot-password">
+                <Link ml="auto">Forgot Password?</Link>
+              </NextLink>
+            </Flex>
             <Button type="submit" mt={4} colorScheme="blue">
               Login
             </Button>
@@ -70,4 +73,4 @@ const Login: React.FC<{}> = ({}) => {
 
 //we export withUrqlClient here so that we can client side render the login page...
 //...we also want to call the appropriate mutations from the client side.
-export default withUrqlClient(createUrqlClient) (Login); 
+export default withUrqlClient(createUrqlClient)(Login);

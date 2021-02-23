@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import { MikroORM } from "@mikro-orm/core";
+
 import { COOKIE_NAME, __prod__ } from "./constants";
 //import { Post } from "./entities/Post";
-import microConfig from "./mikro-orm.config";
+
 import express from 'express'
 import {ApolloServer} from 'apollo-server-express'
 import {buildSchema} from 'type-graphql'
@@ -10,7 +10,8 @@ import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 
-import redis from 'redis';
+//import redis from 'redis';
+import Redis from "ioredis";//we use the ioredis client instead of the redis client since ioredis uses promises
 import session from 'express-session';
 
 //let RedisStore = require('connect-redis')(session) can become the following two lines using import statement...
@@ -22,12 +23,27 @@ import cors from 'cors'
 import { sendEmail } from "./utils/sendEmail";
 import { User } from "./entities/User";
 
+import {createConnection} from 'typeorm'
+
+import { Post } from "./entities/Post";
+
 const main = async () => {
     //first few steps for the datbase are:
     //1: connect to database
-    const orm = await MikroORM.init(microConfig);
+    const conn = await createConnection({
+        type: 'postgres',
+        database: 'lireddit2',
+        username: 'postgres',        
+        password: 'postgresql',
+        logging: true,
+        synchronize: true,
+        entities: [Post, User],
+    });
+
+    ///
+    //const orm = await MikroORM.init(microConfig);
     //2: run the migrations
-    await orm.getMigrator().up();//you can run the migration through the cli or programmatically (which is what this line does)
+    //await orm.getMigrator().up();//you can run the migration through the cli or programmatically (which is what this line does)
     //you could also do const post = new Post('my first post') but youd need to define a constructor
     //3:then run sql
     // const post = orm.em.create(Post, {title: 'my first post'});//simply creates a Post instance
@@ -45,7 +61,8 @@ const main = async () => {
     //This needs to happen because we want to use the session middleware inside of apollo
     const RedisStore = connectRedis(session)
 
-    const redisClient = redis.createClient()
+    const redisClient = new Redis();//redis.createClient()
+    
     //this app.use command is necessary for cors to apply to all routes. This is revlavent when using the graphql client
     //You could also specify the specific route.
     app.use(cors({
@@ -80,7 +97,7 @@ const main = async () => {
         }),
         //req is being passed to the context so that the resolvers have access to the session...the res may be needed later
         //also notice that we're destructuring te req, res??? maybe, im not sure
-        context: ({req, res}): MyContext => ({ em: orm.em, req, res }) //here you define what special object is accessible by all your resolvers
+        context: ({req, res}): MyContext => ({ req, res, redisClient }), //here you define what special object is accessible by all your resolvers
     });
 
     apolloServer.applyMiddleware({ app,  cors: false});
