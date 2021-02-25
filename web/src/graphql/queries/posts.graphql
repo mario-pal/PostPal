@@ -1,8 +1,15 @@
-query Posts{
+query Posts($limit: Int!, $cursor: String) {
+  posts(cursor: $cursor, limit: $limit) {
+    hasMore
     posts {
-        id
-        createdAt
-        updatedAt
-        title
+      id
+      createdAt
+      updatedAt
+      title
+      textSnippet #notice here we ask for the textSnippet instead of the full text...
+      #...so that we aren't loading alot of data. Also textSnippet is not a column in...
+      #...the Posts table or a property of the entity.
+      #We shouldnt create the snippet on the client side since youd still be loading all the text data
     }
+  }
 }
