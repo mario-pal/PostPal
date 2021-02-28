@@ -1,5 +1,5 @@
 import { dedupExchange, fetchExchange, stringifyVariables } from "urql";
-import { cacheExchange, Resolver } from "@urql/exchange-graphcache";
+import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
 import {
   LogoutMutation,
   MeQuery,
@@ -70,6 +70,14 @@ const cursorPagination = (): Resolver => {
     };
   };
 };
+//=================================
+function invalidateAllPosts(cache: Cache) {
+  const allFields = cache.inspectFields("Query");
+  const fieldInfos = allFields.filter((info) => info.fieldName === "posts");
+  fieldInfos.forEach((fi) => {
+    cache.invalidate("Query", "posts", fi.arguments || {});
+  });
+}
 
 //=================================
 export const createUrqlClient = (ssrExchange: any, ctx: any) => {
@@ -101,7 +109,8 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
         },
         updates: {
           Mutation: {
-            deletePost: (_result, args, cache, info) => {//see 10:32:00
+            deletePost: (_result, args, cache, info) => {
+              //see 10:32:00
               cache.invalidate({
                 __typename: "Post",
                 id: (args as DeletePostMutationVariables).id,
@@ -138,24 +147,15 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
               }
             },
             createPost: (_result, args, cache, info) => {
-              const allFields = cache.inspectFields("Query");
-              const fieldInfos = allFields.filter(
-                (info) => info.fieldName === "posts"
-              );
-              fieldInfos.forEach((fi) => {
-                cache.invalidate(
-                  "Query",
-                  "posts",
-                  fi.arguments || {}
-                ); /*{
+              invalidateAllPosts(cache);
+              /*{
                 //when a user creates a post, we want to invalidate the cache to that the new post is seen right away.
                 //variables: {//we can do this by setting a field to undefined which forces the page to fetch data again
                 limit: 15,
                 //cursor: null ...setting the cursor to null is not the same as cursor undefined
                 //}
               });*/
-                //console.log(cache.inspectFields("Query")) you can use this to inspect the cache
-              });
+              //console.log(cache.inspectFields("Query")) you can use this to inspect the cache
             },
             logout: (_result, args, cache, info) => {
               betterUpdateQuery<LogoutMutation, MeQuery>(
@@ -180,6 +180,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                   }
                 }
               );
+              invalidateAllPosts(cache);
             },
 
             register: (_result, args, cache, info) => {

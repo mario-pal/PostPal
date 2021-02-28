@@ -18,6 +18,7 @@ import { MyContext } from "src/types";
 import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
 import { Upvote } from "../entities/Upvote";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -43,7 +44,29 @@ export class PostResolver {
     return root.text.slice();
   }
 
-  //@FieldResolver(() =>User)
+  @FieldResolver(() =>User)
+  creator(
+    @Root() post: Post,
+    @Ctx() {userLoader}: MyContext
+    ){
+    //return User.findOne(post.creatorId);
+    //see 11:21:00
+    //the point of this is to fetch all users in a single query for the main page instead of using multiple queries
+    return userLoader.load(post.creatorId);//this returns a promise of a user (resolves to a user)
+  }
+  
+  @FieldResolver(() => Int, {nullable: true})
+  async voteStatus(
+    @Root() post: Post,
+    @Ctx() {upvoteLoader, req}: MyContext
+  ){
+    if(!req.session.userId){
+      return null;
+    }
+    const upvote = await upvoteLoader.load({postId: post.id, userId: req.session.userId});
+
+    return upvote ? upvote.value : null;
+  }
   //=====================================================
   @Mutation(() => Boolean)
   @UseMiddleware(isAuth)
@@ -118,14 +141,14 @@ export class PostResolver {
     //select p.* from post p means you want to reference the post table and select all the fields
     const replacements: any[] = [realLimitPlusOne]; //this might be null
 
-    if (req.session.userId) {
+    /*if (req.session.userId) {
       replacements.push(req.session.userId);
-    }
+    }*/
 
-    let cursorIdx = 3;
+    //let cursorIdx = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
-      cursorIdx = replacements.length; //note replacements.length is not zero based
+      //cursorIdx = replacements.length; //note replacements.length is not zero based
     }
 
     //in postgres, there can be multiple schemas inside the database. So public.user...
@@ -133,20 +156,23 @@ export class PostResolver {
     //see 8:15:00
     //json_build_object is used to format the data the way graphql expects
     //see 9:42:00
+    //json_build_object('id', u.id, 'username', u.username, 'email', u.email) creator,
+    // inner join public.user u on u.id = p."creatorId"
+    /*${
+      req.session.userId
+        ? '(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"'
+        : 'null as "voteStatus"'
+    }*/
     const posts = await getConnection().query(
       `
-        select p.*, 
-        json_build_object('id', u.id, 'username', u.username, 'email', u.email) creator,
+        select p.*
         
-        ${
-          req.session.userId
-            ? '(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"'
-            : 'null as "voteStatus"'
-        }
+        
+       
 
         from post p
-        inner join public.user u on u.id = p."creatorId"
-        ${cursor ? `where p."createdAt" < $${cursorIdx}` : ""}
+       
+        ${cursor ? `where p."createdAt" < $2` : ""}
         order by p."createdAt" DESC
         limit $1
     `,
@@ -176,7 +202,8 @@ export class PostResolver {
     @Arg("id", () => Int) id: number //here instead of 'id' you can call this anything but youd have to use the selected name in the graphql query
   ): Promise<Post | undefined> {
     //this is a type check done by Typescript
-    return Post.findOne(id, { relations: ["creator"] });
+    //return Post.findOne(id, { relations: ["creator"] });
+    return Post.findOne(id);
   }
   //mutation is for inserting, updating and deleting or other commands that change things on the server
   @Mutation(() => Post) //this is saying we return a Post or Null graphql types

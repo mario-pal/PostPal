@@ -1,6 +1,8 @@
 
 import {Request, Response} from 'express';
 import { Redis } from "ioredis";
+import { createUpvoteLoader } from './utils/createUpvoteLoader';
+import { createUserLoader } from './utils/createUserLoader';
 
 export type MyContext = {
     
@@ -10,4 +12,6 @@ export type MyContext = {
     req: Request & {session: Express.Session };//the typescript & joins the two types together
     res: Response;
     redisClient: Redis;
+    userLoader: ReturnType<typeof createUserLoader>;
+    upvoteLoader: ReturnType<typeof createUpvoteLoader>;
 };

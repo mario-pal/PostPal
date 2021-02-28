@@ -27,6 +27,8 @@ import {createConnection} from 'typeorm'
 
 import { Post } from "./entities/Post";
 import { Upvote } from "./entities/Upvote";
+import { createUserLoader } from "./utils/createUserLoader";
+import { createUpvoteLoader } from "./utils/createUpvoteLoader";
 
 const main = async () => {
     //first few steps for the datbase are:
@@ -98,7 +100,7 @@ const main = async () => {
         }),
         //req is being passed to the context so that the resolvers have access to the session...the res may be needed later
         //also notice that we're destructuring te req, res??? maybe, im not sure
-        context: ({req, res}): MyContext => ({ req, res, redisClient }), //here you define what special object is accessible by all your resolvers
+        context: ({req, res}): MyContext => ({ req, res, redisClient, userLoader: createUserLoader(), upvoteLoader: createUpvoteLoader(),}), //here you define what special object is accessible by all your resolvers
     });
 
     apolloServer.applyMiddleware({ app,  cors: false});
