@@ -26,6 +26,7 @@ import { User } from "./entities/User";
 import {createConnection} from 'typeorm'
 
 import { Post } from "./entities/Post";
+import { Upvote } from "./entities/Upvote";
 
 const main = async () => {
     //first few steps for the datbase are:
@@ -37,7 +38,7 @@ const main = async () => {
         password: 'postgresql',
         logging: true,
         synchronize: true,
-        entities: [Post, User],
+        entities: [Post, User, Upvote],
     });
 
     ///

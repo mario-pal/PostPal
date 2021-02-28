@@ -1,6 +1,7 @@
 import {BaseEntity, Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
 import { Field, Int, ObjectType } from "type-graphql";
 import { Post } from "./Post";
+import { Upvote } from "./Upvote";
 
 //the @ are called decorators
 //The @field tells graphql which fields you want to expose in your api implementation
@@ -35,4 +36,7 @@ export class User extends BaseEntity{
 
     @OneToMany(() => Post, post => post.creator)
     posts: Post[];
+    //=================================
+    @OneToMany(() => Upvote, (upvote) => upvote.user)
+    upvotes: Upvote[]
 }

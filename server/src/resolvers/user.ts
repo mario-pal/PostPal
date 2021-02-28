@@ -3,10 +3,12 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   Mutation,
   ObjectType,
   Query,
   Resolver,
+  Root,
 } from "type-graphql";
 import argon2 from "argon2";
 import { User } from "../entities/User";
@@ -36,8 +38,22 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+  //==============================
+  //this field resolver is here because you dontwant users to see other user emails...
+  //...when they fetch post data. Also, anyone could potentially make a graphql request to see another user's email.
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() {req}: MyContext){
+    //this is the current user and it is ok to show them their own email
+    if(req.session.userId === user.id){
+      return user.email;
+    }
+    //current user wants to see someone else's email
+    return "";
+  }
+
+  //==============================
   @Mutation (() => UserResponse)
   async changePassword(
     @Arg('token') token: string,
@@ -202,7 +218,7 @@ export class UserResolver {
       };
     }
 
-    req.session!.userId = user.id;
+    req.session.userId = user.id;//for some reason req.session!.userId = user.id; with ! drops id field 
 
     return {
       user,
