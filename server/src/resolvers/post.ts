@@ -9,7 +9,6 @@ import {
   Field,
   InputType,
   UseMiddleware,
-  Args,
   FieldResolver,
   Root,
   ObjectType,
@@ -133,7 +132,7 @@ export class PostResolver {
   async posts(
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string | null, //nullable because there is no cursor on first request
-    @Ctx() { req }: MyContext
+    @Ctx() { }: MyContext
   ): Promise<PaginatedPosts> {
     //Promise<Post []> is the typescript type. Btw this is here to validate the return type.
     const realLimit = Math.min(50, limit); //+ 1;// trick to let you peek ahead to see if there are more posts to fetch

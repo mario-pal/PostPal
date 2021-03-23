@@ -11,7 +11,7 @@ import { toErrorMap } from "../utils/toErrorMap";
 import { useRouter } from "next/router";
 import { createUrqlClient } from "../utils/createUrqlClient";
 import { withUrqlClient } from "next-urql";
-import NextLink from 'next/link';
+import NextLink from "next/link";
 
 const Login: React.FC<{}> = ({}) => {
   const router = useRouter();
@@ -25,9 +25,9 @@ const Login: React.FC<{}> = ({}) => {
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors));
           } else if (response.data?.login.user) {
-            if(typeof router.query.next === 'string'){
+            if (typeof router.query.next === "string") {
               router.push(router.query.next);
-            }else{
+            } else {
               //it worked
               router.push("/");
             }
@@ -60,11 +60,7 @@ const Login: React.FC<{}> = ({}) => {
                 type="password"
               />
             </Box>
-            <Flex mt={2}>
-              <NextLink href="/forgot-password">
-                <Link ml="auto">Forgot Password?</Link>
-              </NextLink>
-            </Flex>
+
             <Button type="submit" mt={4} colorScheme="blue">
               Login
             </Button>
@@ -78,3 +74,9 @@ const Login: React.FC<{}> = ({}) => {
 //we export withUrqlClient here so that we can client side render the login page...
 //...we also want to call the appropriate mutations from the client side.
 export default withUrqlClient(createUrqlClient)(Login);
+
+/* <Flex mt={2}>
+              <NextLink href="/forgot-password">
+                <Link ml="auto">Forgot Password?</Link>
+              </NextLink>
+            </Flex> */

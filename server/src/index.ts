@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import "dotenv-safe/config";//reads .env file and provides autoompletion and reads .env.example to see missing environment variables
 
 import { COOKIE_NAME, __prod__ } from "./constants";
 //import { Post } from "./entities/Post";
@@ -20,7 +21,7 @@ import { MyContext } from "./types";
 //const RedisStore = connectRedis(session) this line is used later in the code in the redis section
 
 import cors from 'cors'
-import { sendEmail } from "./utils/sendEmail";
+//import { sendEmail } from "./utils/sendEmail";
 import { User } from "./entities/User";
 
 import {createConnection} from 'typeorm'
@@ -29,19 +30,21 @@ import { Post } from "./entities/Post";
 import { Upvote } from "./entities/Upvote";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createUpvoteLoader } from "./utils/createUpvoteLoader";
+import path from "path";
 
 const main = async () => {
     //first few steps for the datbase are:
     //1: connect to database
-    const conn = await createConnection({
+    /*const conn = */await createConnection({
         type: 'postgres',
-        database: 'lireddit2',
-        username: 'postgres',        
-        password: 'postgresql',
+        url: process.env.DATABASE_URL,
         logging: true,
-        synchronize: true,
+        migrations: [path.join(__dirname, "./migrations/*")],
+        //synchronize: true, not needed in production
         entities: [Post, User, Upvote],
     });
+
+    //await conn.runMigrations();//used when first deploying this app to dokku to set up the tables
 
     ///
     //const orm = await MikroORM.init(microConfig);
@@ -64,12 +67,13 @@ const main = async () => {
     //This needs to happen because we want to use the session middleware inside of apollo
     const RedisStore = connectRedis(session)
 
-    const redisClient = new Redis();//redis.createClient()
+    const redisClient = new Redis(process.env.REDIS_URL);//redis.createClient()
     
+    app.set("trust proxy", 1); //if in production so that cookies work
     //this app.use command is necessary for cors to apply to all routes. This is revlavent when using the graphql client
     //You could also specify the specific route.
     app.use(cors({
-        origin: 'http://localhost:3000',
+        origin: process.env.CORS_ORIGIN,
         credentials: true
     }))
     app.use(
@@ -84,10 +88,11 @@ const main = async () => {
                 maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //where 1000 is 1 second
                 httpOnly: true, //thsi means no front end javascript code can access the cookie
                 sameSite: 'lax', //something to do with csrf...the ben awad tutorial disnt explain this, instead suggested to google it
-                secure: __prod__ //secure makes it so that cookie only works in https (in this case if __prod__ is true since in dev we dont use https)
+                secure: __prod__, //secure makes it so that cookie only works in https (in this case if __prod__ is true since in dev we dont use https)
+                domain: __prod__ ? ".mariopal.dev" : undefined
             },
             saveUninitialized: false, //by default, a session is always saved even if there is no data for the session. However, by setting this to false we are saying we dont want to save sessions with no data
-            secret: 'keyboard cat',//put this in an environment variable later
+            secret: process.env.SESSION_SECRET,//put this in an environment variable later
             resave: false,//set to false sothat it doesnt continously ping redis
         })
     );
@@ -105,7 +110,7 @@ const main = async () => {
 
     apolloServer.applyMiddleware({ app,  cors: false});
 
-    app.listen(4000, () => {
+    app.listen(parseInt(process.env.PORT), () => {
         console.log('server started on localhost:4000')
     });
 };

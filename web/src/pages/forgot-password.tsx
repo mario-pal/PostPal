@@ -15,13 +15,13 @@ export const ForgotPassword: React.FC<{}> = ({}) => {
   return (
     <Wrapper variant="small">
       <Formik
-        initialValues={{ usernameOrEmail: "", password: "" }}
+        initialValues={{ email: "" }}
         onSubmit={async (values) => {
           await forgotPassword(values);
           setComplete(true);
         }}
       >
-        {({ values, handleChange }) => complete ? <Box>if an account with that email exists, you received an email</Box> : (
+        {({ isSubmitting }) => complete ? <Box>if an account with that email exists, you received an email</Box> : (
           <Form>
             <Box mt={4}>
               <InputField

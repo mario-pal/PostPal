@@ -21,9 +21,9 @@ export const InputField: React.FC<InputFieldProps> = ({
   ...props
 }) => {
   let InputOrTextarea = Input;
-  if(textarea){
+  /*if(textarea){
     InputOrTextarea = Textarea;
-  }
+  }*/
   const [field, { error }] = useField(props);
   {
     /*this is a special hook from formik*/

@@ -11,7 +11,7 @@ import {
 } from "../../../generated/graphql";
 import { createUrqlClient } from "../../../utils/createUrqlClient";
 import { useGetIntId } from "../../../utils/useGetIntId";
-import { withApollo } from "../../../utils/withApollo";
+
 
 const EditPost = ({}) => {//because we are returning a new post, we do not need to update the cache ourselves.
   const router = useRouter();
